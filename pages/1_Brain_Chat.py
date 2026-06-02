@@ -14,12 +14,6 @@ DB_PATH = "./chroma_db"
 with st.sidebar:
     st.subheader("⚙️ Configuration")
 
-    openai_key = st.text_input(
-        "OpenAI API key",
-        type="password",
-        value=os.getenv("OPENAI_API_KEY", ""),
-        help="Used for embeddings (text-embedding-3-small). Get one at platform.openai.com",
-    )
     anthropic_key = st.text_input(
         "Anthropic API key",
         type="password",
@@ -53,17 +47,14 @@ with st.sidebar:
         st.warning("Not indexed yet")
 
     if st.button("🔄 Index / Re-index Courses", use_container_width=True):
-        if not openai_key:
-            st.error("OpenAI API key is required for indexing.")
-        else:
-            with st.status("Indexing course files...", expanded=True) as status:
-                from brain.ingest import ingest_courses
-                try:
-                    total = ingest_courses("./Courses", openai_key, DB_PATH, log=st.write)
-                    status.update(label=f"Done! {total} chunks indexed ✓", state="complete")
-                except Exception as e:
-                    status.update(label=f"Error: {e}", state="error")
-            st.rerun()
+        with st.status("Indexing course files...", expanded=True) as status:
+            from brain.ingest import ingest_courses
+            try:
+                total = ingest_courses("./Courses", DB_PATH, log=st.write)
+                status.update(label=f"Done! {total} chunks indexed ✓", state="complete")
+            except Exception as e:
+                status.update(label=f"Error: {e}", state="error")
+        st.rerun()
 
     if chunk_count > 0 and st.button("🗑️ Clear Index", use_container_width=True):
         import chromadb, shutil
@@ -91,8 +82,8 @@ for msg in st.session_state.messages:
 
 # Input
 if question := st.chat_input("Ask anything about your courses…"):
-    if not openai_key or not anthropic_key:
-        st.error("Set both API keys in the sidebar before asking questions.")
+    if not anthropic_key:
+        st.error("Set your Anthropic API key in the sidebar before asking questions.")
         st.stop()
     if chunk_count == 0:
         st.error("The knowledge base is empty. Click **Index / Re-index Courses** in the sidebar first.")
@@ -110,7 +101,6 @@ if question := st.chat_input("Ask anything about your courses…"):
             try:
                 result = query_brain(
                     question=question,
-                    openai_api_key=openai_key,
                     anthropic_api_key=anthropic_key,
                     db_path=DB_PATH,
                     top_k=top_k,

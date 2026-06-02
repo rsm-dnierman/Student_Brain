@@ -43,7 +43,6 @@ defaults = {
     }],
     "scrape_done":   _has_courses(),
     "index_done":    _chunk_count() > 0,
-    "openai_key":    os.getenv("OPENAI_API_KEY", ""),
     "anthropic_key": os.getenv("ANTHROPIC_API_KEY", ""),
     "model":         "claude-sonnet-4-6",
     "top_k":         8,
@@ -305,19 +304,6 @@ def render_step2():
 
     with key_col:
         st.subheader("API Keys")
-        oc,oh = st.columns([5,1])
-        with oc: openai_key = st.text_input("OpenAI API key", type="password", value=st.session_state.openai_key)
-        with oh:
-            st.write("")
-            with st.popover("❓ How?"):
-                st.markdown("""
-**Get your OpenAI key**
-1. [platform.openai.com](https://platform.openai.com) → sign in
-2. **API Keys** → **+ Create new secret key**
-3. Copy it (starts with `sk-...`)
-
-Used for embeddings — very cheap (~$0.02/1M tokens).
-                """)
         ac,ah = st.columns([5,1])
         with ac: anthropic_key = st.text_input("Anthropic API key", type="password", value=st.session_state.anthropic_key)
         with ah:
@@ -339,12 +325,10 @@ Used for embeddings — very cheap (~$0.02/1M tokens).
         save_env = st.checkbox("💾 Save keys to .env", value=True)
 
         if st.button("Save Settings", use_container_width=True):
-            st.session_state.openai_key    = openai_key
             st.session_state.anthropic_key = anthropic_key
             st.session_state.model  = model
             st.session_state.top_k  = top_k
             if save_env and os.path.exists(ENV_FILE):
-                set_key(ENV_FILE, "OPENAI_API_KEY",    openai_key)
                 set_key(ENV_FILE, "ANTHROPIC_API_KEY", anthropic_key)
             st.success("Saved ✓")
 
@@ -364,21 +348,17 @@ Used for embeddings — very cheap (~$0.02/1M tokens).
             st.info("Not indexed yet.")
 
         if st.button("🔄 Index / Re-index Courses", type="primary", use_container_width=True):
-            key = openai_key or st.session_state.openai_key
             ant = (anthropic_key or st.session_state.anthropic_key) if use_vision else None
-            if not key:
-                st.error("OpenAI API key required.")
-            else:
-                with st.status("Indexing…", expanded=True) as status:
-                    from brain.ingest import ingest_courses
-                    try:
-                        total = ingest_courses(COURSES_DIR, key, DB_PATH,
-                                               log=st.write, anthropic_api_key=ant)
-                        st.session_state.index_done = True
-                        status.update(label=f"Done — {total:,} chunks ✓", state="complete")
-                    except Exception as e:
-                        status.update(label=f"Error: {e}", state="error")
-                st.rerun()
+            with st.status("Indexing…", expanded=True) as status:
+                from brain.ingest import ingest_courses
+                try:
+                    total = ingest_courses(COURSES_DIR, DB_PATH,
+                                           log=st.write, anthropic_api_key=ant)
+                    st.session_state.index_done = True
+                    status.update(label=f"Done — {total:,} chunks ✓", state="complete")
+                except Exception as e:
+                    status.update(label=f"Error: {e}", state="error")
+            st.rerun()
 
         if _chunk_count() > 0:
             _index_dashboard()
@@ -418,21 +398,21 @@ def _index_dashboard():
 # STEP 3 — STUDENT BRAIN
 # ══════════════════════════════════════════════════════════════════════════════
 def render_step3():
-    openai_key    = st.session_state.openai_key
+
     anthropic_key = st.session_state.anthropic_key
     chunks        = _chunk_count()
 
-    if not openai_key or not anthropic_key:
-        st.error("API keys missing — go back to Step 3."); _nav(next_ok=False); return
+    if not anthropic_key:
+        st.error("Anthropic API key missing — go back to Step 3."); _nav(next_ok=False); return
 
     # ── Course filter + tabs ──
     tab_chat, tab_study, tab_ratings = st.tabs(["💬 Chat", "📖 Study Tools", "📊 Ratings"])
 
     with tab_chat:
-        _render_chat(openai_key, anthropic_key, chunks)
+        _render_chat(anthropic_key, chunks)
 
     with tab_study:
-        _render_study(openai_key, anthropic_key, chunks)
+        _render_study(anthropic_key, chunks)
 
     with tab_ratings:
         _render_ratings()
@@ -453,7 +433,7 @@ def _course_filter_widget(key_suffix=""):
 
 
 # ── Chat tab ──────────────────────────────────────────────────────────────────
-def _render_chat(openai_key, anthropic_key, chunks):
+def _render_chat(anthropic_key, chunks):
     col_cfg, col_main = st.columns([1, 3], gap="large")
 
     with col_cfg:
@@ -500,7 +480,7 @@ def _render_chat(openai_key, anthropic_key, chunks):
                            for m in st.session_state.messages[:-1]]
                 try:
                     sources, stream = query_brain_stream(
-                        question=question, openai_api_key=openai_key,
+                        question=question,
                         anthropic_api_key=anthropic_key, db_path=DB_PATH,
                         top_k=top_k, model=model,
                         history=history, course_filter=course_filter,
@@ -566,7 +546,7 @@ def _do_rate(msg_id: int, rating: str):
 
 
 # ── Study Tools tab ───────────────────────────────────────────────────────────
-def _render_study(openai_key, anthropic_key, chunks):
+def _render_study(anthropic_key, chunks):
     if chunks == 0:
         st.info("Index your courses first (Step 3)."); return
 
@@ -591,7 +571,7 @@ def _render_study(openai_key, anthropic_key, chunks):
         if "Flashcards" in tool:
             with st.spinner("Generating flashcards…"):
                 from brain.study import generate_flashcards
-                cards, sources = generate_flashcards(topic, openai_key, anthropic_key,
+                cards, sources = generate_flashcards(topic, anthropic_key,
                                                      DB_PATH, model=model, n=n_items,
                                                      course_filter=course_filter)
             st.success(f"{len(cards)} flashcards generated")
@@ -603,7 +583,7 @@ def _render_study(openai_key, anthropic_key, chunks):
         elif "Quiz" in tool:
             with st.spinner("Generating quiz…"):
                 from brain.study import generate_quiz
-                questions, sources = generate_quiz(topic, openai_key, anthropic_key,
+                questions, sources = generate_quiz(topic, anthropic_key,
                                                    DB_PATH, model=model, n=n_items,
                                                    course_filter=course_filter)
             st.success(f"{len(questions)} questions generated")
@@ -627,7 +607,7 @@ def _render_study(openai_key, anthropic_key, chunks):
         else:  # Summary
             with st.spinner("Summarizing…"):
                 from brain.study import summarize_module
-                summary, sources = summarize_module(topic, openai_key, anthropic_key,
+                summary, sources = summarize_module(topic, anthropic_key,
                                                     DB_PATH, model=model,
                                                     course_filter=course_filter)
             st.markdown(summary)

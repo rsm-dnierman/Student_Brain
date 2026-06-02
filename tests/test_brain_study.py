@@ -3,7 +3,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 
-FAKE_EMBEDDING = [0.1] * 1536
+FAKE_EMBEDDING = [0.1] * 384
 FAKE_CHUNKS = [{"text": "RAG retrieves relevant docs.", "source": "a.pdf",
                 "course": "A", "filename": "a.pdf", "file_type": "pdf",
                 "page": "1", "score": 0.9}]
@@ -33,14 +33,14 @@ class TestGenerateFlashcards:
         from brain.study import generate_flashcards, Flashcard
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(self.CARDS_JSON)):
-            cards, sources = generate_flashcards("RAG", "sk-o", "sk-a", "/tmp/db")
+            cards, sources = generate_flashcards("RAG", "sk-a", "/tmp/db")
         assert all(isinstance(c, Flashcard) for c in cards)
 
     def test_correct_number_of_cards(self):
         from brain.study import generate_flashcards
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(self.CARDS_JSON)):
-            cards, _ = generate_flashcards("RAG", "sk-o", "sk-a", "/tmp/db", n=2)
+            cards, _ = generate_flashcards("RAG", "sk-a", "/tmp/db", n=2)
         assert len(cards) == 2
 
     def test_strips_markdown_fences(self):
@@ -48,14 +48,14 @@ class TestGenerateFlashcards:
         fenced = f"```json\n{self.CARDS_JSON}\n```"
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(fenced)):
-            cards, _ = generate_flashcards("RAG", "sk-o", "sk-a", "/tmp/db")
+            cards, _ = generate_flashcards("RAG", "sk-a", "/tmp/db")
         assert len(cards) == 2
 
     def test_returns_source_chunks(self):
         from brain.study import generate_flashcards
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(self.CARDS_JSON)):
-            _, sources = generate_flashcards("RAG", "sk-o", "sk-a", "/tmp/db")
+            _, sources = generate_flashcards("RAG", "sk-a", "/tmp/db")
         assert isinstance(sources, list)
         assert len(sources) > 0
 
@@ -63,7 +63,7 @@ class TestGenerateFlashcards:
         from brain.study import generate_flashcards
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(self.CARDS_JSON)):
-            cards, _ = generate_flashcards("RAG", "sk-o", "sk-a", "/tmp/db")
+            cards, _ = generate_flashcards("RAG", "sk-a", "/tmp/db")
         assert cards[0].front == "What is RAG?"
         assert "Retrieval" in cards[0].back
 
@@ -81,21 +81,21 @@ class TestGenerateQuiz:
         from brain.study import generate_quiz, QuizQuestion
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(self.QUIZ_JSON)):
-            questions, _ = generate_quiz("RAG", "sk-o", "sk-a", "/tmp/db")
+            questions, _ = generate_quiz("RAG", "sk-a", "/tmp/db")
         assert all(isinstance(q, QuizQuestion) for q in questions)
 
     def test_question_has_four_options(self):
         from brain.study import generate_quiz
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(self.QUIZ_JSON)):
-            questions, _ = generate_quiz("RAG", "sk-o", "sk-a", "/tmp/db")
+            questions, _ = generate_quiz("RAG", "sk-a", "/tmp/db")
         assert len(questions[0].options) == 4
 
     def test_answer_is_one_of_the_options(self):
         from brain.study import generate_quiz
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(self.QUIZ_JSON)):
-            questions, _ = generate_quiz("RAG", "sk-o", "sk-a", "/tmp/db")
+            questions, _ = generate_quiz("RAG", "sk-a", "/tmp/db")
         for q in questions:
             assert q.answer in q.options
 
@@ -107,7 +107,7 @@ class TestSummarizeModule:
         from brain.study import summarize_module
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(self.SUMMARY)):
-            summary, _ = summarize_module("RAG", "sk-o", "sk-a", "/tmp/db")
+            summary, _ = summarize_module("RAG", "sk-a", "/tmp/db")
         assert isinstance(summary, str)
         assert len(summary) > 10
 
@@ -115,7 +115,7 @@ class TestSummarizeModule:
         from brain.study import summarize_module
         with patch("brain.study._context_for_topic", return_value=_mock_retrieve()), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(self.SUMMARY)):
-            _, sources = summarize_module("RAG", "sk-o", "sk-a", "/tmp/db")
+            _, sources = summarize_module("RAG", "sk-a", "/tmp/db")
         assert isinstance(sources, list)
 
 

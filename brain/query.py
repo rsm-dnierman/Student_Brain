@@ -41,7 +41,6 @@ def _history_messages(history: list[dict]) -> list[dict]:
 
 def _retrieve(
     question: str,
-    openai_api_key: str,
     db_path: str,
     top_k: int,
     course_filter: Optional[str],
@@ -49,7 +48,7 @@ def _retrieve(
     col = get_collection(db_path)
     if col.count() == 0:
         return []
-    q_embedding = embed_texts([question], openai_api_key)[0]
+    q_embedding = embed_texts([question])[0]
     chunks      = hybrid_retrieve(question, q_embedding, db_path,
                                   top_k=top_k, course_filter=course_filter)
     return rerank(question, chunks)
@@ -59,7 +58,6 @@ def _retrieve(
 
 def query_brain(
     question: str,
-    openai_api_key: str,
     anthropic_api_key: str,
     db_path: str = "./chroma_db",
     top_k: int = 8,
@@ -69,7 +67,7 @@ def query_brain(
 ) -> dict:
     import anthropic
 
-    chunks = _retrieve(question, openai_api_key, db_path, top_k, course_filter)
+    chunks = _retrieve(question, db_path, top_k, course_filter)
 
     if not chunks:
         return {
@@ -96,7 +94,6 @@ def query_brain(
 
 def query_brain_stream(
     question: str,
-    openai_api_key: str,
     anthropic_api_key: str,
     db_path: str = "./chroma_db",
     top_k: int = 8,
@@ -110,7 +107,7 @@ def query_brain_stream(
     """
     import anthropic
 
-    chunks = _retrieve(question, openai_api_key, db_path, top_k, course_filter)
+    chunks = _retrieve(question, db_path, top_k, course_filter)
 
     if not chunks:
         def _empty():

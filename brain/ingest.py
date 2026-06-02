@@ -2,7 +2,7 @@
 Ingest course files into ChromaDB + build BM25 index.
 
 Pipeline:
-  Courses/ → parse file → chunks → embed (OpenAI) → upsert ChromaDB → build BM25
+  Courses/ → parse file → chunks → embed (local sentence-transformers) → upsert ChromaDB → build BM25
 """
 import json
 import os
@@ -13,8 +13,17 @@ import chromadb
 from .parsers import parse_pdf, parse_notebook, parse_text
 
 COLLECTION_NAME = "student_brain"
-EMBED_MODEL     = "text-embedding-3-small"
+EMBED_MODEL     = "all-MiniLM-L6-v2"
 LAST_INDEX_FILE = "last_indexed.json"
+
+_embedder = None  # cached SentenceTransformer instance
+
+def _get_embedder():
+    global _embedder
+    if _embedder is None:
+        from sentence_transformers import SentenceTransformer
+        _embedder = SentenceTransformer(EMBED_MODEL)
+    return _embedder
 
 PARSEABLE = {
     ".pdf":   parse_pdf,
@@ -31,15 +40,8 @@ def get_collection(db_path: str) -> chromadb.Collection:
     )
 
 
-def embed_texts(texts: list[str], api_key: str) -> list[list[float]]:
-    from openai import OpenAI
-    client = OpenAI(api_key=api_key)
-    all_embeddings: list[list[float]] = []
-    for i in range(0, len(texts), 100):
-        batch = texts[i : i + 100]
-        resp  = client.embeddings.create(model=EMBED_MODEL, input=batch)
-        all_embeddings.extend(item.embedding for item in resp.data)
-    return all_embeddings
+def embed_texts(texts: list[str]) -> list[list[float]]:
+    return _get_embedder().encode(texts, show_progress_bar=False).tolist()
 
 
 def _save_last_indexed(db_path: str) -> None:
@@ -78,7 +80,6 @@ def new_files_since_last_index(courses_dir: str, db_path: str) -> list[str]:
 
 def ingest_courses(
     courses_dir: str,
-    openai_api_key: str,
     db_path: str = "./chroma_db",
     log=print,
     anthropic_api_key: str = None,   # optional: enables vision fallback for image PDFs
@@ -117,12 +118,9 @@ def ingest_courses(
 
             texts = [c["text"] for c in raw_chunks]
             try:
-                embeddings = embed_texts(texts, openai_api_key)
+                embeddings = embed_texts(texts)
             except Exception as e:
-                if "429" in str(e) or "insufficient_quota" in str(e):
-                    log("  ✗ embedding error: OpenAI quota exceeded — add credits at platform.openai.com/settings/billing and re-index.")
-                else:
-                    log(f"  ✗ embedding error: {e}")
+                log(f"  ✗ embedding error: {e}")
                 continue
 
             ids, docs, metas, embeds = [], [], [], []

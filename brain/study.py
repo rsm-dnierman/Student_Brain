@@ -21,7 +21,6 @@ class QuizQuestion:
 
 def _context_for_topic(
     topic: str,
-    openai_api_key: str,
     db_path: str,
     top_k: int = 12,
     course_filter: str = None,
@@ -30,7 +29,7 @@ def _context_for_topic(
     from .ingest import embed_texts
     from .retrieval import hybrid_retrieve, rerank
 
-    q_emb  = embed_texts([topic], openai_api_key)[0]
+    q_emb  = embed_texts([topic])[0]
     chunks = hybrid_retrieve(topic, q_emb, db_path, top_k=top_k,
                              course_filter=course_filter)
     chunks = rerank(topic, chunks)
@@ -47,7 +46,6 @@ def _context_for_topic(
 
 def generate_flashcards(
     topic: str,
-    openai_api_key: str,
     anthropic_api_key: str,
     db_path: str,
     model: str = "claude-sonnet-4-6",
@@ -57,8 +55,7 @@ def generate_flashcards(
     """Return (flashcards, source_chunks)."""
     import anthropic, json
 
-    sources, context = _context_for_topic(topic, openai_api_key, db_path,
-                                          course_filter=course_filter)
+    sources, context = _context_for_topic(topic, db_path, course_filter=course_filter)
 
     prompt = f"""Based on the following course material, generate {n} flashcards about: {topic}
 
@@ -83,7 +80,6 @@ Return ONLY the JSON array, no explanation."""
 
 def generate_quiz(
     topic: str,
-    openai_api_key: str,
     anthropic_api_key: str,
     db_path: str,
     model: str = "claude-sonnet-4-6",
@@ -93,8 +89,7 @@ def generate_quiz(
     """Return (quiz_questions, source_chunks)."""
     import anthropic, json
 
-    sources, context = _context_for_topic(topic, openai_api_key, db_path,
-                                          course_filter=course_filter)
+    sources, context = _context_for_topic(topic, db_path, course_filter=course_filter)
 
     prompt = f"""Based on the following course material, generate {n} multiple-choice questions about: {topic}
 
@@ -122,7 +117,6 @@ Return ONLY the JSON array."""
 
 def summarize_module(
     module_topic: str,
-    openai_api_key: str,
     anthropic_api_key: str,
     db_path: str,
     model: str = "claude-sonnet-4-6",
@@ -131,7 +125,7 @@ def summarize_module(
     """Return (summary_markdown, source_chunks)."""
     import anthropic
 
-    sources, context = _context_for_topic(module_topic, openai_api_key, db_path,
+    sources, context = _context_for_topic(module_topic, db_path,
                                           top_k=15, course_filter=course_filter)
 
     prompt = f"""Summarize the following course material about: {module_topic}

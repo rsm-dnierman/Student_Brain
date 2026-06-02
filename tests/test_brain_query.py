@@ -36,7 +36,7 @@ class TestQueryBrain:
         from brain.query import query_brain
         with patch("brain.query._retrieve", return_value=chunks if chunks is not None else FAKE_CHUNKS), \
              patch("anthropic.Anthropic", return_value=_mock_anthropic(answer)):
-            return query_brain(question, "sk-o", "sk-a", "/tmp/db",
+            return query_brain(question, "sk-a", "/tmp/db",
                                top_k=5, model=model)
 
     def test_returns_answer_string(self):
@@ -68,7 +68,7 @@ class TestQueryBrain:
         mock_client = _mock_anthropic()
         with patch("brain.query._retrieve", return_value=FAKE_CHUNKS), \
              patch("anthropic.Anthropic", return_value=mock_client):
-            query_brain("What is RAG?", "sk-o", "sk-a", "/tmp/db")
+            query_brain("What is RAG?", "sk-a", "/tmp/db")
         content = mock_client.messages.create.call_args.kwargs["messages"][-1]["content"]
         assert "[1]" in content
 
@@ -77,7 +77,7 @@ class TestQueryBrain:
         mock_client = _mock_anthropic()
         with patch("brain.query._retrieve", return_value=FAKE_CHUNKS), \
              patch("anthropic.Anthropic", return_value=mock_client):
-            query_brain("Explain uplift modeling", "sk-o", "sk-a", "/tmp/db")
+            query_brain("Explain uplift modeling", "sk-a", "/tmp/db")
         content = mock_client.messages.create.call_args.kwargs["messages"][-1]["content"]
         assert "Explain uplift modeling" in content
 
@@ -89,7 +89,7 @@ class TestQueryBrain:
         mock_client = _mock_anthropic()
         with patch("brain.query._retrieve", return_value=FAKE_CHUNKS), \
              patch("anthropic.Anthropic", return_value=mock_client):
-            query_brain("Q?", "sk-o", "sk-a", "/tmp/db", model="claude-haiku-4-5-20251001")
+            query_brain("Q?", "sk-a", "/tmp/db", model="claude-haiku-4-5-20251001")
         assert mock_client.messages.create.call_args.kwargs["model"] == "claude-haiku-4-5-20251001"
 
     def test_history_passed_to_claude(self):
@@ -99,7 +99,7 @@ class TestQueryBrain:
                    {"role": "assistant", "content": "Prior answer"}]
         with patch("brain.query._retrieve", return_value=FAKE_CHUNKS), \
              patch("anthropic.Anthropic", return_value=mock_client):
-            query_brain("Follow-up?", "sk-o", "sk-a", "/tmp/db", history=history)
+            query_brain("Follow-up?", "sk-a", "/tmp/db", history=history)
         messages = mock_client.messages.create.call_args.kwargs["messages"]
         # History turns should appear before the final user turn
         assert len(messages) >= 3
@@ -121,7 +121,7 @@ class TestQueryBrain:
         # Consume the stream while the mock is still active
         with patch("brain.query._retrieve", return_value=FAKE_CHUNKS), \
              patch("anthropic.Anthropic", return_value=mock_client):
-            sources, stream = query_brain_stream("Q?", "sk-o", "sk-a", "/tmp/db")
+            sources, stream = query_brain_stream("Q?", "sk-a", "/tmp/db")
             full = "".join(stream)   # consume inside the patch context
 
         assert sources == FAKE_CHUNKS
