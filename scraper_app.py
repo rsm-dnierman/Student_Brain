@@ -170,7 +170,7 @@ def render_step0():
         if site_type == "Django (RSM)":
             with st.form("add_django", clear_on_submit=True):
                 name=st.text_input("Display name"); base_url=st.text_input("Base URL",value="https://rsm-django-02.ucsd.edu")
-                slug=st.text_input("Course slug"); email=st.text_input("Email",value=rsm_e)
+                slug=st.text_input("Course slug"); email=st.text_input("Email",value=rsm_e, placeholder="email@ucsd.edu")
                 pw=st.text_input("Password",type="password",value=rsm_p)
                 if st.form_submit_button("Add",use_container_width=True) and name and slug:
                     st.session_state.sites.append({"id":f"django_{slug}","name":name,"type":"django",
@@ -195,7 +195,7 @@ def render_step0():
 
         else:
             with st.form("add_canvas", clear_on_submit=True):
-                name=st.text_input("Display name"); url=st.text_input("Canvas domain")
+                name=st.text_input("Display name"); url=st.text_input("Canvas domain", placeholder="https://rady.instructure.com/")
                 tc, hc = st.columns([5, 1])
                 with tc: token=st.text_input("Access token",type="password")
                 with hc:
