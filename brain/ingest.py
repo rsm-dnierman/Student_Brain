@@ -166,8 +166,9 @@ def _vision_fallback(
     log,
 ) -> list[dict]:
     """
-    For any PDF page where pdfplumber extracted < 80 chars, re-extract
-    using Claude's vision API (rendered page image → text).
+    For any PDF page where pdfplumber extracted < 80 chars:
+      1. Try PyMuPDF text extraction (free, no API call)
+      2. If still < 80 chars, fall back to Claude vision
     """
     import base64
     import fitz  # PyMuPDF
@@ -181,11 +182,20 @@ def _vision_fallback(
         if len(chunk["text"]) >= 80:
             continue   # pdfplumber got enough text
         page_num = chunk["metadata"].get("page", i + 1) - 1
+        page = doc[page_num]
+
+        # Step 1: try PyMuPDF native text extraction
+        fitz_text = page.get_text("text").strip()
+        if len(fitz_text) >= 80:
+            result[i] = {"text": fitz_text, "metadata": chunk["metadata"]}
+            log(f"    📄 fitz extraction on page {page_num + 1}")
+            continue
+
+        # Step 2: fall back to Claude vision
         try:
-            page  = doc[page_num]
-            pix   = page.get_pixmap(dpi=120)
-            b64   = base64.b64encode(pix.tobytes("png")).decode()
-            resp  = client.messages.create(
+            pix = page.get_pixmap(dpi=120)
+            b64 = base64.b64encode(pix.tobytes("png")).decode()
+            resp = client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=800,
                 messages=[{"role": "user", "content": [
