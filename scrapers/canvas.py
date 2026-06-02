@@ -52,6 +52,9 @@ def _download_course_files(domain, course_id, course_dir, headers, log):
         if r.status_code == 401:
             log("  (files restricted — skipping)")
             return
+        if r.status_code == 403:
+            log("  (Files tab is restricted for this course — instructor has disabled student access. Files linked through Modules will still be downloaded.)")
+            return
         if r.status_code != 200:
             log(f"  (files API {r.status_code} — skipping)")
             return
