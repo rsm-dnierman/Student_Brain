@@ -22,10 +22,8 @@ pip install -r requirements.txt
 
 Copy `.env.example` to `.env` and fill in your keys (or enter them in the app UI):
 
-```
-OPENAI_API_KEY=sk-...
-ANTHROPIC_API_KEY=sk-ant-...
-CANVAS_ACCESS_TOKEN=...       # optional, for Canvas scraping
+```bash
+cp .env.example .env
 ```
 
 ## Running the app
