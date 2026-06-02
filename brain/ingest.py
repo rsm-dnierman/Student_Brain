@@ -119,7 +119,10 @@ def ingest_courses(
             try:
                 embeddings = embed_texts(texts, openai_api_key)
             except Exception as e:
-                log(f"  ✗ embedding error: {e}")
+                if "429" in str(e) or "insufficient_quota" in str(e):
+                    log("  ✗ embedding error: OpenAI quota exceeded — add credits at platform.openai.com/settings/billing and re-index.")
+                else:
+                    log(f"  ✗ embedding error: {e}")
                 continue
 
             ids, docs, metas, embeds = [], [], [], []
