@@ -42,25 +42,54 @@ def scrape_canvas(site, log):
 
 
 def _download_course_files(domain, course_id, course_dir, headers, log):
-    r = requests.get(f"{domain}/api/v1/courses/{course_id}/files", headers=headers)
-    if r.status_code != 200:
-        return
-    for f in r.json():
-        save_path = os.path.join(course_dir, "Files", f["filename"])
-        try:
-            download_file(headers, f["url"], save_path, log)
-        except Exception as e:
-            log(f"  ✗ {f['filename']}: {e}")
+    page = 1
+    while True:
+        r = requests.get(
+            f"{domain}/api/v1/courses/{course_id}/files",
+            headers=headers,
+            params=[("per_page", 100), ("page", page)],
+        )
+        if r.status_code == 401:
+            log("  (files restricted — skipping)")
+            return
+        if r.status_code != 200:
+            log(f"  (files API {r.status_code} — skipping)")
+            return
+        data = r.json()
+        if not data or not isinstance(data, list):
+            break
+        for f in data:
+            fname = f.get("filename") or f.get("display_name") or str(f.get("id"))
+            file_url = f.get("url") or f.get("download_url")
+            if not file_url:
+                continue
+            save_path = os.path.join(course_dir, "Files", fname)
+            try:
+                download_file(headers, file_url, save_path, log)
+            except Exception as e:
+                log(f"  ✗ {fname}: {e}")
+        if len(data) < 100:
+            break
+        page += 1
 
 
 def _download_module_files(domain, course_id, course_dir, headers, log):
-    r = requests.get(f"{domain}/api/v1/courses/{course_id}/modules", headers=headers)
+    r = requests.get(
+        f"{domain}/api/v1/courses/{course_id}/modules",
+        headers=headers,
+        params=[("per_page", 100)],
+    )
+    if r.status_code == 401:
+        log("  (modules restricted — skipping)")
+        return
     if r.status_code != 200:
+        log(f"  (modules API {r.status_code} — skipping)")
         return
     for mod in r.json():
         r2 = requests.get(
             f"{domain}/api/v1/courses/{course_id}/modules/{mod['id']}/items",
             headers=headers,
+            params=[("per_page", 100)],
         )
         if r2.status_code != 200:
             continue
@@ -73,11 +102,13 @@ def _download_module_files(domain, course_id, course_dir, headers, log):
             meta_r = requests.get(f"{domain}/api/v1/files/{fid}", headers=headers)
             if meta_r.status_code != 200:
                 continue
-            file_url = meta_r.json().get("url") or meta_r.json().get("download_url")
+            meta = meta_r.json()
+            file_url = meta.get("url") or meta.get("download_url")
             if not file_url:
                 continue
-            save_path = os.path.join(course_dir, "Modules", item.get("title") or str(fid))
+            fname = meta.get("filename") or meta.get("display_name") or item.get("title") or str(fid)
+            save_path = os.path.join(course_dir, "Modules", fname)
             try:
                 download_file(headers, file_url, save_path, log)
             except Exception as e:
-                log(f"  ✗ {item.get('title')}: {e}")
+                log(f"  ✗ {fname}: {e}")
