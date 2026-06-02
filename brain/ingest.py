@@ -12,9 +12,10 @@ import chromadb
 
 from .parsers import parse_pdf, parse_notebook, parse_text
 
-COLLECTION_NAME = "student_brain"
-EMBED_MODEL     = "all-MiniLM-L6-v2"
-LAST_INDEX_FILE = "last_indexed.json"
+COLLECTION_NAME  = "student_brain"
+EMBED_MODEL      = "BAAI/bge-base-en-v1.5"
+QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
+LAST_INDEX_FILE  = "last_indexed.json"
 
 _embedder = None  # cached SentenceTransformer instance
 
@@ -41,7 +42,13 @@ def get_collection(db_path: str) -> chromadb.Collection:
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    return _get_embedder().encode(texts, show_progress_bar=False).tolist()
+    return _get_embedder().encode(texts, show_progress_bar=False, normalize_embeddings=True).tolist()
+
+
+def embed_query(query: str) -> list[float]:
+    return _get_embedder().encode(
+        QUERY_INSTRUCTION + query, show_progress_bar=False, normalize_embeddings=True
+    ).tolist()
 
 
 def _save_last_indexed(db_path: str) -> None:

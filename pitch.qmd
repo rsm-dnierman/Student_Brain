@@ -1,0 +1,612 @@
+---
+title: "Your Semester of Notes,<br>Now Searchable"
+subtitle: "Student Brain — a personal knowledge base for MSBA course material"
+author: "Daniel Nierman · Rady School of Management, UCSD · 2026"
+format:
+  revealjs:
+    theme: dark
+    embed-resources: true
+    slide-number: c/t
+    progress: true
+    transition: slide
+    background-transition: fade
+    width: 1280
+    height: 720
+    margin: 0.05
+    highlight-style: github-dark
+    title-slide-attributes:
+      data-background-color: "#0d1117"
+      data-background-image: "screenshots/ss_chat.png"
+      data-background-size: "42%"
+      data-background-position: "97% 50%"
+      data-background-opacity: "0.75"
+---
+
+<style>
+/* ── Base overrides ─────────────────────────────────────────────────────── */
+:root {
+  --accent:   #1f6feb;
+  --accent-l: #58a6ff;
+  --muted:    #7d8b99;
+  --card-bg:  #161b22;
+  --border:   #30363d;
+  --green:    #2ea043;
+  --yellow:   #e3b341;
+  --text:     #e6edf3;
+}
+
+.reveal,
+.reveal .slides section { background-color: #0d1117; }
+
+.reveal .slide-background,
+.reveal .slide-background-content { background-color: #0d1117; }
+
+.reveal h1, .reveal h2 { color: #ffffff; line-height: 1.15; }
+.reveal h3 { color: var(--accent-l); font-size: 0.95em; }
+.reveal p, .reveal li { color: var(--text); }
+.reveal a  { color: var(--accent-l); }
+.reveal ul  { list-style: none; padding-left: 0; }
+.reveal ul li::before { content: "▸ "; color: var(--accent-l); }
+
+/* Top accent stripe on all slides */
+.reveal .slides { border-top: 4px solid var(--accent); }
+
+/* h2 accent underbar */
+.reveal h2::after {
+  content: '';
+  display: block;
+  width: 64px;
+  height: 3px;
+  background: var(--accent);
+  margin-top: 8px;
+  margin-bottom: 2px;
+}
+
+/* ── Eyebrow label ──────────────────────────────────────────────────────── */
+.eyebrow {
+  font-size: 0.52em;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+
+/* ── Generic cards ──────────────────────────────────────────────────────── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  height: 100%;
+  box-sizing: border-box;
+  font-size: 0.8em;
+}
+.card.a  { border-color: var(--accent);   }
+.card.g  { border-color: var(--green);    }
+.card.y  { border-color: var(--yellow);   }
+.card.b  { border-color: var(--accent-l); }
+.card h4 {
+  color: var(--accent-l);
+  margin: 0 0 4px;
+  font-size: 0.88em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.card .rule { height: 2px; background: var(--accent); width: 44px; margin: 6px 0 8px; }
+.card p  { color: #c9d1d9; margin: 0; line-height: 1.5; }
+
+/* ── Pipeline step cards ─────────────────────────────────────────────────── */
+.step {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 12px 14px;
+  height: 100%;
+  box-sizing: border-box;
+  font-size: 0.78em;
+}
+.step .num  { font-size: 1.9em; font-weight: 700; line-height: 1; display: block; }
+.step .lbl  { font-size: 0.82em; font-weight: 700; color: #fff;
+              text-transform: uppercase; letter-spacing: 0.06em; margin: 5px 0; display: block; }
+.step .rule { height: 2px; width: 36px; margin: 5px 0 8px; display: block; }
+.step p     { color: #c9d1d9; line-height: 1.5; margin: 0; }
+.step.s1 { border: 1px solid var(--accent);   }
+.step.s1 .num { color: var(--accent);   }
+.step.s1 .rule { background: var(--accent);   }
+.step.s2 { border: 1px solid var(--green);    }
+.step.s2 .num { color: var(--green);    }
+.step.s2 .rule { background: var(--green);    }
+.step.s3 { border: 1px solid var(--yellow);   }
+.step.s3 .num { color: var(--yellow);   }
+.step.s3 .rule { background: var(--yellow);   }
+.step.s4 { border: 1px solid var(--accent-l); }
+.step.s4 .num { color: var(--accent-l); }
+.step.s4 .rule { background: var(--accent-l); }
+
+/* ── Quote box ──────────────────────────────────────────────────────────── */
+.qbox {
+  background: #0f1828;
+  border-left: 4px solid var(--accent);
+  padding: 12px 18px;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  font-size: 0.86em;
+  color: #c9d1d9;
+  margin: 8px 0 14px;
+  line-height: 1.55;
+}
+
+/* ── Stat boxes ─────────────────────────────────────────────────────────── */
+.stat {
+  background: var(--card-bg);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  text-align: center;
+  padding: 8px 4px;
+}
+.stat .n { font-size: 1.75em; font-weight: 700; color: var(--accent-l); display: block; line-height: 1.1; }
+.stat .l { font-size: 0.6em; color: var(--muted); display: block; margin-top: 2px; }
+
+/* ── Screenshot frame ───────────────────────────────────────────────────── */
+.ssf img {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+  width: 100%;
+  display: block;
+}
+.caption {
+  color: var(--muted);
+  font-size: 0.6em;
+  font-style: italic;
+  text-align: center;
+  margin-top: 5px;
+  display: block;
+}
+
+/* ── Process rows ───────────────────────────────────────────────────────── */
+.proc-row {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 7px 12px;
+  margin-bottom: 7px;
+  font-size: 0.74em;
+}
+.proc-row .pt { color: var(--accent-l); font-weight: 700; font-size: 0.78em;
+                text-transform: uppercase; letter-spacing: 0.05em; }
+.proc-row p   { color: #c9d1d9; margin: 2px 0 0; line-height: 1.4; }
+
+/* ── Demo list ──────────────────────────────────────────────────────────── */
+.demo-list { list-style: none; padding: 0; margin: 0; }
+.demo-list li {
+  padding: 7px 12px;
+  margin-bottom: 7px;
+  background: var(--card-bg);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+  font-size: 0.78em;
+  color: var(--text);
+  line-height: 1.4;
+}
+.demo-list li::before { content: none; }
+.demo-list .num { color: var(--accent-l); font-weight: 700; margin-right: 5px; }
+
+/* ── Pipeline arrow ─────────────────────────────────────────────────────── */
+.pipe-arrow {
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-l);
+  font-size: 1.3em;
+  padding-top: 50px;
+}
+
+/* ── Title slide ────────────────────────────────────────────────────────── */
+#title-slide h1.title {
+  font-size: 1.85em;
+  line-height: 1.2;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.85);
+  max-width: 55%;
+}
+#title-slide .subtitle, #title-slide .quarto-title-block .subtitle {
+  font-size: 0.68em;
+  color: var(--muted);
+  font-style: italic;
+  max-width: 52%;
+}
+#title-slide .author {
+  font-size: 0.58em;
+  color: #c9d1d9;
+  margin-top: 16px;
+}
+#title-slide .slide-background-content {
+  filter: brightness(0.3) saturate(0.7);
+}
+</style>
+
+
+## The Problem {background-color="#0d1117"}
+
+<span class="eyebrow">The problem</span>
+
+::: {.qbox}
+"It's midnight before finals. I *know* there was a slide about regularization somewhere — was it in the ML course or the analytics one? Let me just check Canvas real quick."
+:::
+
+:::: {.columns}
+
+::: {.column width="32%"}
+<div class="card">
+<h4>Canvas is a maze</h4>
+<div class="rule"></div>
+<p>Modules buried under weeks of content. Click, scroll, download, repeat. Every file requires its own hunt.</p>
+</div>
+:::
+
+::: {.column width="2%"}
+:::
+
+::: {.column width="32%"}
+<div class="card">
+<h4>100+ files, zero search</h4>
+<div class="rule"></div>
+<p>PDFs, notebooks, slides scattered across 8 courses with no unified view. Ctrl+F gets you nowhere.</p>
+</div>
+:::
+
+::: {.column width="2%"}
+:::
+
+::: {.column width="32%"}
+<div class="card">
+<h4>By finals week: chaos</h4>
+<div class="rule"></div>
+<p>You're not sure what you have, what you've read, or where anything lives anymore.</p>
+</div>
+:::
+
+::::
+
+::: {.notes}
+Canvas is excellent for submitting homework. Not so great for studying from your material six months later. By the end of the program you have hundreds of files and no way to find anything quickly.
+:::
+
+
+## The Solution {background-color="#0d1117"}
+
+<span class="eyebrow">The solution</span>
+
+**Four steps from scattered files to a searchable brain**
+
+:::: {.columns style="margin-top:14px;"}
+
+::: {.column width="22%"}
+<div class="step s1">
+<span class="num">01</span>
+<span class="lbl">Scrape</span>
+<span class="rule"></span>
+<p>Connect Canvas, Rady Django sites, or any URL. One click downloads everything to your machine.</p>
+</div>
+:::
+
+::: {.column width="3%"}
+<div class="pipe-arrow">→</div>
+:::
+
+::: {.column width="22%"}
+<div class="step s2">
+<span class="num">02</span>
+<span class="lbl">Organize</span>
+<span class="rule"></span>
+<p>Files sorted by course. PDFs, notebooks, and slides parsed into clean, structured text.</p>
+</div>
+:::
+
+::: {.column width="3%"}
+<div class="pipe-arrow">→</div>
+:::
+
+::: {.column width="22%"}
+<div class="step s3">
+<span class="num">03</span>
+<span class="lbl">Index</span>
+<span class="rule"></span>
+<p>Chunks embedded locally with sentence-transformers and stored in ChromaDB. Fully offline.</p>
+</div>
+:::
+
+::: {.column width="3%"}
+<div class="pipe-arrow">→</div>
+:::
+
+::: {.column width="22%"}
+<div class="step s4">
+<span class="num">04</span>
+<span class="lbl">Query</span>
+<span class="rule"></span>
+<p>Ask in plain English. Get cited answers with a direct link to the original source file.</p>
+</div>
+:::
+
+::::
+
+::: {.notes}
+Four tabs in the app, four steps in the pipeline. The whole thing runs locally — nothing leaves your machine except the final query to Claude.
+:::
+
+
+## Steps 1–2: Connect & Collect {background-color="#0d1117"}
+
+<span class="eyebrow">Steps 1–2</span>
+
+**Point it at your courses. Let it do the work.**
+
+:::: {.columns style="margin-top:6px;"}
+
+::: {.column width="42%"}
+
+**Three source types:**
+
+<div class="proc-row"><div class="pt">Canvas (pre-loaded)</div><p>Auto-connects via your personal API token. All course files, all modules.</p></div>
+
+<div class="proc-row"><div class="pt">Rady Django sites</div><p>RSM course sites at rsm-django-02.ucsd.edu — log in once, it scrapes everything.</p></div>
+
+<div class="proc-row"><div class="pt">Any URL</div><p>Drop in a lecture page, external resource, or course website.</p></div>
+
+<br>
+
+:::: {.columns}
+
+::: {.column width="31%"}
+<div class="stat"><span class="n">110</span><span class="l">files</span></div>
+:::
+
+::: {.column width="3%"}
+:::
+
+::: {.column width="31%"}
+<div class="stat"><span class="n">8</span><span class="l">courses</span></div>
+:::
+
+::: {.column width="3%"}
+:::
+
+::: {.column width="31%"}
+<div class="stat"><span class="n">541 MB</span><span class="l">downloaded</span></div>
+:::
+
+::::
+
+:::
+
+::: {.column width="4%"}
+:::
+
+::: {.column width="54%"}
+<div class="ssf">
+<img src="screenshots/ss_preview.png">
+<span class="caption">Step 2 — Scrape & Preview: files per course + breakdown by type</span>
+</div>
+:::
+
+::::
+
+::: {.notes}
+Step 1 is configuring your data sources — Canvas is pre-configured once you paste your API token. RSM Django sites take your UCSD login. Step 2 gives you a live preview before indexing: 110 files across 8 courses, 541 MB total, broken down by course and file type.
+:::
+
+
+## Step 3: Build the Brain {background-color="#0d1117"}
+
+<span class="eyebrow">Step 3</span>
+
+**From files to a searchable knowledge base**
+
+:::: {.columns style="margin-top:6px;"}
+
+::: {.column width="53%"}
+<div class="ssf">
+<img src="screenshots/ss_setup.png">
+<span class="caption">AI Setup — 1,015 chunks indexed across 8 courses</span>
+</div>
+:::
+
+::: {.column width="4%"}
+:::
+
+::: {.column width="43%"}
+
+**What happens when you hit Index:**
+
+<div class="proc-row"><div class="pt">Parse</div><p>PDFs, notebooks, slides → clean text. PyMuPDF for normal PDFs; Claude Vision as fallback for image-heavy slide decks.</p></div>
+
+<div class="proc-row"><div class="pt">Chunk</div><p>Text split into ~500-token overlapping windows so no concept gets cut off mid-explanation.</p></div>
+
+<div class="proc-row"><div class="pt">Embed</div><p>Each chunk encoded with <code>all-MiniLM-L6-v2</code>. Local model — no data leaves your machine.</p></div>
+
+<div class="proc-row"><div class="pt">Store</div><p>Chunks + vectors saved to ChromaDB. BM25 index built in parallel for hybrid keyword search.</p></div>
+
+:::
+
+::::
+
+::: {.notes}
+The indexing step is fully automated. The only thing you supply is your Anthropic API key and a model choice. Everything else — parsing, chunking, embedding, storing — happens locally. The sentence-transformer model downloads once and runs on your CPU.
+:::
+
+
+## Step 4: Ask Anything {background-color="#0d1117"}
+
+<span class="eyebrow">Step 4</span>
+
+**Natural language in. Cited answers out.**
+
+:::: {.columns style="margin-top:8px;"}
+
+::: {.column width="49%"}
+<div class="ssf">
+<img src="screenshots/ss_chat.png">
+<span class="caption">Ask scoped to one course, or search across all 8</span>
+</div>
+:::
+
+::: {.column width="2%"}
+:::
+
+::: {.column width="49%"}
+<div class="ssf">
+<img src="screenshots/ss_citations.png">
+<span class="caption">Each source: relevance score + Open File → downloads the original PDF</span>
+</div>
+:::
+
+::::
+
+::: {.notes}
+The retrieval system runs three passes: BM25 keyword search, vector similarity, and a cross-encoder reranker to pick the best chunks. Claude gets those chunks as context and generates a cited answer. Every claim is traceable back to a specific file and page.
+:::
+
+
+## Live Demo {background-color="#0d1117"}
+
+<span class="eyebrow">Live demo</span>
+
+**Let's see it.**
+
+:::: {.columns style="margin-top:4px;"}
+
+::: {.column width="44%"}
+<ul class="demo-list">
+<li><span class="num">1.</span> Add Canvas as a data source</li>
+<li><span class="num">2.</span> Scrape & Preview — 110 files, 8 courses, 541 MB</li>
+<li><span class="num">3.</span> AI Setup — 1,015 chunks indexed and ready</li>
+<li><span class="num">4.</span> Ask: <em>"Explain the evaluation criteria for clustering"</em></li>
+<li><span class="num">5.</span> Walk through cited answer — 4 sources, relevance scores</li>
+<li><span class="num">6.</span> Open source PDF directly from the app</li>
+<li><span class="num">7.</span> <strong>Bonus:</strong> Study Tools → flashcards on A/B testing</li>
+</ul>
+:::
+
+::: {.column width="4%"}
+:::
+
+::: {.column width="52%"}
+<div class="ssf">
+<img src="screenshots/ss_flashcards.png">
+<span class="caption">Study Tools — flashcard generation from course material on demand</span>
+</div>
+:::
+
+::::
+
+::: {.notes}
+Walk through each step live. The Study Tools tab is the bonus — it's not just a search engine, it actively helps you study with flashcards, quizzes, and topic summaries.
+:::
+
+
+## Value Add {background-color="#0d1117"}
+
+<span class="eyebrow">Value add</span>
+
+**So what does this actually give you?**
+
+:::: {.columns style="margin-top:14px;"}
+
+::: {.column width="23%"}
+<div class="card a">
+<h4>⏱ Time Saved</h4>
+<div class="rule"></div>
+<p>Find any concept in seconds. No more hunting through Canvas modules or Ctrl+F-ing a 200-slide deck at midnight before finals.</p>
+</div>
+:::
+
+::: {.column width="2%"}
+:::
+
+::: {.column width="23%"}
+<div class="card g">
+<h4>🧠 Better Retention</h4>
+<div class="rule"></div>
+<p>Study Tools generates flashcards and quizzes on demand from your actual course material. Active recall beats passive rereading.</p>
+</div>
+:::
+
+::: {.column width="2%"}
+:::
+
+::: {.column width="23%"}
+<div class="card y">
+<h4>📦 Yours to Keep</h4>
+<div class="rule"></div>
+<p>The database is local. When Canvas disappears after graduation, your notes — and your brain — don't go with it.</p>
+</div>
+:::
+
+::: {.column width="2%"}
+:::
+
+::: {.column width="23%"}
+<div class="card b">
+<h4>🔍 Transferable</h4>
+<div class="rule"></div>
+<p>Same architecture applies to any document collection — job onboarding, client materials, research papers. Build a brain for anything.</p>
+</div>
+:::
+
+::::
+
+::: {.notes}
+Three concrete takeaways: speed, retention, portability. The local storage piece is the one people underrate until Canvas access expires.
+:::
+
+
+## {background-color="#0d1117"}
+
+<div style="text-align:center; padding-top:20px;">
+
+<h2 style="font-size:1.85em; line-height:1.3; border:none;">
+Built it because I needed it.<br>
+<span style="color:#58a6ff;">Turns out, so did everyone else.</span>
+</h2>
+
+<p style="color:#7d8b99; font-style:italic; font-size:0.8em; margin:14px 0 24px;">
+All 8 MSBA courses · 110 files · 1,015 chunks · one search bar
+</p>
+
+:::: {.columns style="max-width:620px; margin:0 auto 28px;"}
+
+::: {.column width="31%"}
+<div class="stat"><span class="n">110</span><span class="l">Files Indexed</span></div>
+:::
+
+::: {.column width="3%"}
+:::
+
+::: {.column width="31%"}
+<div class="stat"><span class="n">1,015</span><span class="l">Searchable Chunks</span></div>
+:::
+
+::: {.column width="3%"}
+:::
+
+::: {.column width="31%"}
+<div class="stat"><span class="n">8</span><span class="l">MSBA Courses</span></div>
+:::
+
+::::
+
+<p style="font-size:1.25em; font-weight:700; color:#fff; margin-top:20px;">Questions?</p>
+
+<p style="color:#7d8b99; font-size:0.62em; margin-top:6px;">
+  <a href="https://github.com/rsm-dnierman" style="color:#58a6ff;">github.com/rsm-dnierman</a>
+  &nbsp;·&nbsp; dnierman@ucsd.edu
+</p>
+
+</div>
+
+::: {.notes}
+Thanks everyone. Happy to demo any specific part in more depth, or talk through the architecture. Code is on GitHub if anyone wants to run it on their own courses.
+:::

@@ -81,29 +81,41 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 
-# ── Step progress bar ──────────────────────────────────────────────────────────
+# ── Sidebar navigation ─────────────────────────────────────────────────────────
 STEPS = [("📥", "Data Sources"), ("🗃️", "Scrape & Preview"),
          ("🔑", "AI Setup"),     ("🧠", "Student Brain")]
+
+with st.sidebar:
+    st.subheader("🧭 Navigation")
+    for i, (icon, label) in enumerate(STEPS):
+        is_active = st.session_state.get("step", 0) == i
+        if st.button(
+            f"{icon} {label}",
+            key=f"sb_nav_{i}",
+            use_container_width=True,
+            type="primary" if is_active else "secondary",
+        ):
+            st.session_state.step = i
+            st.rerun()
+    st.divider()
+    st.page_link("pages/1_Brain_Chat.py", label="💬 Brain Chat", use_container_width=True)
+
 
 def _render_steps():
     cols = st.columns(len(STEPS))
     for i, (icon, label) in enumerate(STEPS):
         with cols[i]:
             cur = st.session_state.step
-            if i < cur:
-                if st.button(f"✓ {icon} {label}", key=f"nav_{i}", use_container_width=True):
-                    st.session_state.step = i
-                    st.rerun()
-            elif i == cur:
+            if i == cur:
                 st.markdown(
                     f'<div style="text-align:center;padding:9px 4px;border-radius:8px;'
                     f'background:#1f6feb;color:white;font-weight:bold;font-size:.9rem">'
                     f'{icon} {label}</div>', unsafe_allow_html=True)
             else:
-                st.markdown(
-                    f'<div style="text-align:center;padding:9px 4px;border-radius:8px;'
-                    f'background:#21262d;color:#8b949e;font-size:.9rem">'
-                    f'{icon} {label}</div>', unsafe_allow_html=True)
+                prefix = "✓ " if i < cur else ""
+                if st.button(f"{prefix}{icon} {label}", key=f"nav_{i}", use_container_width=True):
+                    st.session_state.step = i
+                    st.rerun()
 
 _render_steps()
 st.write("")
@@ -437,6 +449,19 @@ def render_step3():
     if not anthropic_key:
         st.error("Anthropic API key missing — go back to Step 3."); _nav(next_ok=False); return
 
+    # Scroll to bottom so input stays visible
+    st.components.v1.html("""
+    <script>
+        function scrollToBottom() {
+            const c = window.parent.document.querySelector('.stAppScrollToBottomContainer');
+            if (c) c.scrollTop = c.scrollHeight;
+        }
+        scrollToBottom();
+        setTimeout(scrollToBottom, 100);
+        setTimeout(scrollToBottom, 400);
+    </script>
+    """, height=0)
+
     # ── Course filter + tabs ──
     tab_chat, tab_study, tab_ratings = st.tabs(["💬 Chat", "📖 Study Tools", "📊 Ratings"])
 
@@ -483,6 +508,9 @@ def _render_chat(anthropic_key, chunks):
             st.session_state.pending_rating = None
             st.rerun()
 
+    # chat_input must be outside columns to pin to the bottom of the page
+    question = st.chat_input("Ask anything about your courses…")
+
     with col_main:
         st.subheader(f"🧠 Student Brain {f'— {course_filter}' if course_filter else ''}")
 
@@ -491,12 +519,12 @@ def _render_chat(anthropic_key, chunks):
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
                 if msg.get("sources"):
-                    _sources_panel(msg["sources"], expanded=False)
+                    _sources_panel(msg["sources"], expanded=False, panel_id=msg.get("id", id(msg)))
                 if msg.get("show_rating"):
                     _rating_buttons(msg["id"])
 
         # Handle new question
-        if question := st.chat_input("Ask anything about your courses…"):
+        if question:
             if chunks == 0:
                 st.error("No chunks indexed. Go back to Step 3."); return
 
@@ -520,9 +548,8 @@ def _render_chat(anthropic_key, chunks):
                 except Exception as e:
                     st.error(f"Error: {e}"); return
 
-                # Stream the answer token-by-token
                 answer = st.write_stream(stream)
-                _sources_panel(sources, expanded=True)
+                _sources_panel(sources, expanded=True, panel_id=f"new_{msg_id}")
                 _rating_buttons(msg_id + 1)
 
             st.session_state.messages.append({
@@ -533,7 +560,7 @@ def _render_chat(anthropic_key, chunks):
             })
 
 
-def _sources_panel(sources: list[dict], expanded=False):
+def _sources_panel(sources: list[dict], expanded=False, panel_id=""):
     if not sources:
         return
     with st.expander(f"📎 {len(sources)} source{'s' if len(sources)!=1 else ''}", expanded=expanded):
@@ -549,6 +576,17 @@ def _sources_panel(sources: list[dict], expanded=False):
                 st.markdown(f'<div style="text-align:right;color:{color};font-weight:bold">'
                             f'{score:.0%}</div>', unsafe_allow_html=True)
             st.caption(src["text"][:350] + ("…" if len(src["text"]) > 350 else ""))
+            abs_path = os.path.abspath(os.path.join(COURSES_DIR, src["source"]))
+            if os.path.exists(abs_path):
+                key = f"dl_{panel_id}_{i}"
+                with open(abs_path, "rb") as f:
+                    st.download_button(
+                        label="📄 Open file",
+                        data=f,
+                        file_name=src.get("filename", os.path.basename(abs_path)),
+                        mime="application/octet-stream",
+                        key=key,
+                    )
             if i < len(sources): st.divider()
 
 

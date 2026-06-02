@@ -173,7 +173,14 @@ def rerank(query: str, chunks: list[dict]) -> list[dict]:
         pairs  = [(query, c["text"]) for c in chunks]
         scores = _reranker_cache.predict(pairs)
         ranked = sorted(zip(scores, chunks), key=lambda x: x[0], reverse=True)
-        return [c for _, c in ranked]
+        result = []
+        for score, chunk in ranked:
+            c = dict(chunk)
+            # Normalize cross-encoder logit to 0–1 with sigmoid
+            import math
+            c["score"] = round(1 / (1 + math.exp(-float(score))), 3)
+            result.append(c)
+        return result
 
     except Exception:
         return chunks  # graceful fallback

@@ -10,9 +10,22 @@ st.title("🧠 Student Brain")
 st.caption("Ask anything about your course materials — answers are cited back to the source.")
 
 DB_PATH = "./chroma_db"
+COURSES_DIR = "./Courses"
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
+    st.subheader("🧭 Navigation")
+    for step_num, (icon, label) in enumerate([
+        ("📥", "Data Sources"),
+        ("🗃️", "Scrape & Preview"),
+        ("🔑", "AI Setup"),
+        ("🧠", "Student Brain"),
+    ]):
+        if st.button(f"{icon} {label}", key=f"nav_{step_num}", use_container_width=True):
+            st.session_state.step = step_num
+            st.switch_page("scraper_app.py")
+
+    st.divider()
     st.subheader("⚙️ Configuration")
 
     anthropic_key = st.text_input(
@@ -62,24 +75,52 @@ with st.sidebar:
         shutil.rmtree(DB_PATH, ignore_errors=True)
         st.rerun()
 
+# ── Always scroll to bottom on every render ────────────────────────────────────
+st.components.v1.html("""
+<script>
+    function scrollToBottom() {
+        const container = window.parent.document.querySelector('.stAppScrollToBottomContainer');
+        if (container) container.scrollTop = container.scrollHeight;
+    }
+    scrollToBottom();
+    // Also fire after DOM settles (Streamlit updates asynchronously)
+    setTimeout(scrollToBottom, 100);
+    setTimeout(scrollToBottom, 400);
+</script>
+""", height=0)
+
 # ── Chat ──────────────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+def _render_sources(sources, panel_id):
+    with st.expander(f"📎 {len(sources)} sources used"):
+        for i, src in enumerate(sources, 1):
+            label = f"**[{i}]** `{src['source']}`"
+            if src.get("page"):
+                label += f"  •  page {src['page']}"
+            label += f"  •  relevance {src['score']:.0%}"
+            st.markdown(label)
+            st.caption(src["text"][:300] + ("…" if len(src["text"]) > 300 else ""))
+            abs_path = os.path.abspath(os.path.join(COURSES_DIR, src["source"]))
+            if os.path.exists(abs_path):
+                with open(abs_path, "rb") as f:
+                    st.download_button(
+                        label="📄 Open file",
+                        data=f,
+                        file_name=src.get("filename", os.path.basename(abs_path)),
+                        mime="application/octet-stream",
+                        key=f"dl_{panel_id}_{i}",
+                    )
+            st.divider()
+
+
 # Render history
-for msg in st.session_state.messages:
+for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if sources := msg.get("sources"):
-            with st.expander(f"📎 {len(sources)} sources used"):
-                for i, src in enumerate(sources, 1):
-                    label = f"**[{i}]** `{src['source']}`"
-                    if src.get("page"):
-                        label += f"  •  page {src['page']}"
-                    label += f"  •  relevance {src['score']:.0%}"
-                    st.markdown(label)
-                    st.caption(src["text"][:300] + ("…" if len(src["text"]) > 300 else ""))
-                    st.divider()
+            _render_sources(sources, panel_id=f"h{idx}")
 
 # Input
 if question := st.chat_input("Ask anything about your courses…"):
@@ -97,35 +138,24 @@ if question := st.chat_input("Ask anything about your courses…"):
 
     # Generate answer
     with st.chat_message("assistant"):
-        with st.spinner("Searching course materials…"):
-            from brain.query import query_brain
-            try:
-                result = query_brain(
-                    question=question,
-                    anthropic_api_key=anthropic_key,
-                    db_path=DB_PATH,
-                    top_k=top_k,
-                    model=model,
-                )
-            except Exception as e:
-                st.error(f"Error: {e}")
-                st.stop()
+        from brain.query import query_brain_stream
+        try:
+            sources, stream = query_brain_stream(
+                question=question,
+                anthropic_api_key=anthropic_key,
+                db_path=DB_PATH,
+                top_k=top_k,
+                model=model,
+            )
+        except Exception as e:
+            st.error(f"Error: {e}")
+            st.stop()
 
-        st.markdown(result["answer"])
-
-        sources = result["sources"]
-        with st.expander(f"📎 {len(sources)} sources used"):
-            for i, src in enumerate(sources, 1):
-                label = f"**[{i}]** `{src['source']}`"
-                if src.get("page"):
-                    label += f"  •  page {src['page']}"
-                label += f"  •  relevance {src['score']:.0%}"
-                st.markdown(label)
-                st.caption(src["text"][:300] + ("…" if len(src["text"]) > 300 else ""))
-                st.divider()
+        answer = st.write_stream(stream)
+        _render_sources(sources, panel_id=f"new{len(st.session_state.messages)}")
 
     st.session_state.messages.append({
         "role": "assistant",
-        "content": result["answer"],
-        "sources": result["sources"],
+        "content": answer,
+        "sources": sources,
     })

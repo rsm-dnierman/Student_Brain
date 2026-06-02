@@ -7,7 +7,7 @@ Two entry points:
 """
 from typing import Iterator, Optional
 
-from .ingest import embed_texts, get_collection
+from .ingest import embed_texts, embed_query, get_collection
 from .retrieval import hybrid_retrieve, rerank
 
 SYSTEM_PROMPT = """You are a helpful student assistant for an MSBA program at UC San Diego's Rady School of Management.
@@ -15,7 +15,8 @@ SYSTEM_PROMPT = """You are a helpful student assistant for an MSBA program at UC
 Answer questions using ONLY the provided course material context.
 Cite every claim with [1], [2], etc. matching the numbered sources.
 If the context does not contain enough information to answer fully, say so clearly.
-Keep answers well-structured and concise."""
+
+Write thorough, detailed answers. Explain concepts fully, include relevant examples or formulas from the materials, and elaborate on implications where useful. Use headers and bullet points to organize longer responses."""
 
 
 def _build_context(chunks: list[dict]) -> str:
@@ -48,7 +49,7 @@ def _retrieve(
     col = get_collection(db_path)
     if col.count() == 0:
         return []
-    q_embedding = embed_texts([question])[0]
+    q_embedding = embed_query(question)
     chunks      = hybrid_retrieve(question, q_embedding, db_path,
                                   top_k=top_k, course_filter=course_filter)
     return rerank(question, chunks)
@@ -84,7 +85,7 @@ def query_brain(
 
     client = anthropic.Anthropic(api_key=anthropic_api_key)
     resp   = client.messages.create(
-        model=model, max_tokens=1500, system=SYSTEM_PROMPT, messages=messages,
+        model=model, max_tokens=4096, system=SYSTEM_PROMPT, messages=messages,
     )
 
     return {"answer": resp.content[0].text, "sources": chunks}
@@ -124,7 +125,7 @@ def query_brain_stream(
     def _stream() -> Iterator[str]:
         client = anthropic.Anthropic(api_key=anthropic_api_key)
         with client.messages.stream(
-            model=model, max_tokens=1500, system=SYSTEM_PROMPT, messages=messages,
+            model=model, max_tokens=4096, system=SYSTEM_PROMPT, messages=messages,
         ) as stream:
             yield from stream.text_stream
 
