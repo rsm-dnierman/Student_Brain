@@ -1,8 +1,34 @@
 import streamlit as st
 import os
+import threading
+import time
 import pandas as pd
 from dotenv import load_dotenv, set_key
 from scrapers import scrape_canvas, scrape_django, scrape_generic
+
+# Module-level indexing state — survives page refreshes within the same server process
+_INDEX = {"running": False, "logs": [], "error": None, "total": 0}
+
+
+def _start_indexing(anthropic_api_key=None):
+    """Kick off ingest_courses in a background thread."""
+    from brain.ingest import ingest_courses
+    _INDEX.update({"running": True, "logs": [], "error": None, "total": 0})
+
+    def _run():
+        try:
+            total = ingest_courses(
+                COURSES_DIR, DB_PATH,
+                log=lambda m: _INDEX["logs"].append(m),
+                anthropic_api_key=anthropic_api_key,
+            )
+            _INDEX["total"] = total
+        except Exception as e:
+            _INDEX["error"] = str(e)
+        finally:
+            _INDEX["running"] = False
+
+    threading.Thread(target=_run, daemon=True).start()
 
 load_dotenv()
 
@@ -347,17 +373,23 @@ def render_step2():
         else:
             st.info("Not indexed yet.")
 
-        if st.button("🔄 Index / Re-index Courses", type="primary", use_container_width=True):
+        if _INDEX["running"]:
+            st.info("⏳ Indexing in progress — safe to refresh or navigate away.")
+            with st.container(border=True):
+                for line in _INDEX["logs"][-30:]:   # show last 30 lines
+                    st.write(line)
+            time.sleep(1)
+            st.rerun()
+        elif _INDEX["error"]:
+            st.error(f"Indexing error: {_INDEX['error']}")
+        elif _INDEX["total"] > 0:
+            st.success(f"✓ Done — {_INDEX['total']:,} chunks indexed")
+            st.session_state.index_done = True
+
+        if st.button("🔄 Index / Re-index Courses", type="primary",
+                     use_container_width=True, disabled=_INDEX["running"]):
             ant = (anthropic_key or st.session_state.anthropic_key) if use_vision else None
-            with st.status("Indexing…", expanded=True) as status:
-                from brain.ingest import ingest_courses
-                try:
-                    total = ingest_courses(COURSES_DIR, DB_PATH,
-                                           log=st.write, anthropic_api_key=ant)
-                    st.session_state.index_done = True
-                    status.update(label=f"Done — {total:,} chunks ✓", state="complete")
-                except Exception as e:
-                    status.update(label=f"Error: {e}", state="error")
+            _start_indexing(anthropic_api_key=ant)
             st.rerun()
 
         if _chunk_count() > 0:

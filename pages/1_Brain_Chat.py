@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -46,14 +47,14 @@ with st.sidebar:
     else:
         st.warning("Not indexed yet")
 
-    if st.button("🔄 Index / Re-index Courses", use_container_width=True):
-        with st.status("Indexing course files...", expanded=True) as status:
-            from brain.ingest import ingest_courses
-            try:
-                total = ingest_courses("./Courses", DB_PATH, log=st.write)
-                status.update(label=f"Done! {total} chunks indexed ✓", state="complete")
-            except Exception as e:
-                status.update(label=f"Error: {e}", state="error")
+    from scraper_app import _INDEX, _start_indexing
+    if _INDEX["running"]:
+        st.info("⏳ Indexing in progress…")
+        time.sleep(1)
+        st.rerun()
+    if st.button("🔄 Index / Re-index Courses", use_container_width=True,
+                 disabled=_INDEX["running"]):
+        _start_indexing()
         st.rerun()
 
     if chunk_count > 0 and st.button("🗑️ Clear Index", use_container_width=True):
