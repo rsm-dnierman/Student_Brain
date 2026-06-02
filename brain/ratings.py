@@ -18,15 +18,15 @@ def log_rating(question: str, answer: str, rating: str, sources: list[dict]) -> 
         "rating":    rating,
         "sources":   [s.get("source", "") for s in sources[:5]],
     }
-    with open(RATINGS_FILE, "a") as f:
-        f.write(json.dumps(entry) + "\n")
+    with open(RATINGS_FILE, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
 def get_ratings() -> list[dict]:
     if not os.path.exists(RATINGS_FILE):
         return []
     ratings = []
-    with open(RATINGS_FILE) as f:
+    with open(RATINGS_FILE, encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:

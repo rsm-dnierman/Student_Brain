@@ -47,7 +47,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
 def _save_last_indexed(db_path: str) -> None:
     path = os.path.join(db_path, LAST_INDEX_FILE)
     os.makedirs(db_path, exist_ok=True)
-    with open(path, "w") as f:
+    with open(path, "w", encoding="utf-8") as f:
         json.dump({"indexed_at": datetime.now().isoformat()}, f)
 
 
@@ -55,7 +55,7 @@ def get_last_indexed(db_path: str) -> datetime | None:
     path = os.path.join(db_path, LAST_INDEX_FILE)
     if not os.path.exists(path):
         return None
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         data = json.load(f)
     return datetime.fromisoformat(data["indexed_at"])
 

@@ -27,7 +27,7 @@ def parse_notebook(path: str) -> list[dict]:
     Extract each non-empty cell as a chunk.
     Code cells include up to 500 chars of output so context is self-contained.
     """
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         nb = json.load(f)
 
     chunks = []
@@ -61,7 +61,7 @@ def parse_text(path: str) -> list[dict]:
     Split markdown-style text into sections at heading boundaries.
     Merge consecutive short sections so each chunk has enough context.
     """
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         content = f.read().strip()
 
     if not content:
