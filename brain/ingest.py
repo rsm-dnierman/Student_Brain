@@ -201,6 +201,9 @@ def _vision_fallback(
                 result[i] = {"text": vision_text, "metadata": chunk["metadata"]}
                 log(f"    👁 vision extraction on page {page_num + 1}")
         except Exception as e:
-            log(f"    ✗ vision page {page_num + 1}: {e}")
+            if "content filtering policy" in str(e):
+                log(f"    ⚠ vision page {page_num + 1}: skipped by content filter (page kept with extracted text)")
+            else:
+                log(f"    ✗ vision page {page_num + 1}: {e}")
 
     return result
