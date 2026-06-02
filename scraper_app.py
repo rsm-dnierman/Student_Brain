@@ -118,6 +118,21 @@ def render_step0():
                     st.session_state.sites[i]["selected"] = checked
                     if site["type"] == "generic":
                         st.caption(f"Model: `{site.get('model','claude-sonnet-4-6')}`")
+                    if site["type"] == "canvas":
+                        with st.expander("🔑 Update access token"):
+                            st.caption(
+                                "**To generate a token:** go to "
+                                "[Canvas → Profile Settings](https://rady.instructure.com/profile/settings) "
+                                "→ scroll to **Approved Integrations** → click **+ New Access Token** "
+                                "→ copy the token and paste it below."
+                            )
+                            new_token = st.text_input(
+                                "New access token", type="password",
+                                placeholder="Paste token here…", key=f"token_input_{i}")
+                            if st.button("Save token", key=f"save_token_{i}") and new_token:
+                                st.session_state.sites[i]["token"] = new_token
+                                st.success("Token updated.")
+                                st.rerun()
                 with r2:
                     if site["id"] != "canvas":
                         if st.button("✕", key=f"del_{i}", help="Remove"):
@@ -181,7 +196,17 @@ def render_step0():
         else:
             with st.form("add_canvas", clear_on_submit=True):
                 name=st.text_input("Display name"); url=st.text_input("Canvas domain")
-                token=st.text_input("Access token",type="password")
+                tc, hc = st.columns([5, 1])
+                with tc: token=st.text_input("Access token",type="password")
+                with hc:
+                    st.write("")
+                    with st.popover("❓"):
+                        st.markdown(
+                            "1. Go to **Canvas → Profile Settings → Approved Integrations**\n"
+                            "2. Click **+ New Access Token**\n"
+                            "3. Set a name & expiry, then click **Generate Token**\n"
+                            "4. Copy and paste the token here"
+                        )
                 if st.form_submit_button("Add",use_container_width=True) and name and url and token:
                     st.session_state.sites.append({"id":f"canvas_{len(st.session_state.sites)}",
                         "name":name,"type":"canvas","url":url,"token":token,"selected":True})
