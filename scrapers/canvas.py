@@ -10,14 +10,24 @@ def scrape_canvas(site, log):
     headers = {"Authorization": f"Bearer {token}"}
 
     log("Fetching course list...")
-    params = {"enrollment_state[]": ["active", "completed", "deleted"], "per_page": 30}
     courses, page = [], 1
     while True:
-        params["page"] = page
+        params = [
+            ("enrollment_state[]", "active"),
+            ("enrollment_state[]", "completed"),
+            ("per_page", 50),
+            ("page", page),
+        ]
         r = requests.get(f"{domain}/api/v1/users/self/courses", headers=headers, params=params)
-        if r.status_code != 200 or not r.json():
+        if r.status_code != 200:
+            log(f"Canvas API error {r.status_code}: {r.text[:200]}")
             break
-        courses.extend(r.json())
+        data = r.json()
+        if not data or not isinstance(data, list):
+            break
+        courses.extend(data)
+        if len(data) < 50:
+            break
         page += 1
     log(f"Found {len(courses)} courses")
 

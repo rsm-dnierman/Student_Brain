@@ -28,8 +28,10 @@ def login(base_url, slug, email, password):
 
 def scrape_django(site, log):
     """Download all files and page text from an RSM Django course site."""
-    base = site["url"].rstrip("/")
     slug = site["slug"]
+    url  = site["url"].rstrip("/")
+    # Strip the slug from the URL if the user included it, to avoid /slug/slug/ doubling
+    base = url[: -len(slug) - 1] if url.endswith(f"/{slug}") else url
 
     log(f"Logging in to {base}/{slug}/...")
     session = login(base, slug, site["email"], site["password"])

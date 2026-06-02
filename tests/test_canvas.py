@@ -17,23 +17,21 @@ class TestScrapeCanvas:
     }
 
     def test_fetches_all_course_pages(self):
-        """Pagination: keeps requesting until an empty page is returned."""
+        """Pagination: stops when a page returns fewer items than per_page (50)."""
         from scrapers.canvas import scrape_canvas
 
-        page1 = _make_response([{"id": 1, "name": "Course A"}])
-        page2 = _make_response([{"id": 2, "name": "Course B"}])
-        page3 = _make_response([])  # signals end of pagination
-        # files / modules return empty lists for both courses
+        # Full page of 50 → more pages expected
+        page1 = _make_response([{"id": i, "name": f"Course {i}"} for i in range(50)])
+        # Partial page → last page
+        page2 = _make_response([{"id": 50, "name": "Course 50"}])
         empty = _make_response([])
 
-        with patch("requests.get", side_effect=[page1, page2, page3,
-                                                empty, empty, empty, empty]) as mock_get:
+        with patch("requests.get", side_effect=[page1, page2] + [empty] * 200) as mock_get:
             scrape_canvas(self.SITE, lambda m: None)
 
-        # First 3 calls are the paginated course list
         course_calls = [c for c in mock_get.call_args_list
                         if "users/self/courses" in str(c)]
-        assert len(course_calls) == 3
+        assert len(course_calls) == 2
 
     def test_auth_header_sent_on_every_request(self):
         """Every request must include the Bearer token."""
