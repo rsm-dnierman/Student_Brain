@@ -331,7 +331,8 @@ Used for embeddings — very cheap (~$0.02/1M tokens).
                 """)
 
         model = st.selectbox("Claude model", ["claude-sonnet-4-6","claude-opus-4-8","claude-haiku-4-5-20251001"])
-        top_k = st.slider("Chunks to retrieve", 3, 15, st.session_state.top_k)
+        top_k = st.slider("Chunks to retrieve", 3, 15, st.session_state.top_k,
+                          help="How many passages from your course materials are sent to Claude as context. Higher = more coverage for broad questions but slower and more expensive. 8 is a good default.")
         use_vision = st.checkbox("👁 Vision extraction for image-heavy PDFs",
                                  help="Uses Claude Haiku to extract text from slide images. "
                                       "Requires Anthropic API key. Slower but more complete.")
@@ -461,7 +462,8 @@ def _render_chat(openai_key, anthropic_key, chunks):
         model = st.selectbox("Model", ["claude-sonnet-4-6","claude-opus-4-8","claude-haiku-4-5-20251001"],
                              index=["claude-sonnet-4-6","claude-opus-4-8","claude-haiku-4-5-20251001"]
                              .index(st.session_state.model), key="chat_model")
-        top_k = st.slider("Sources", 3, 15, st.session_state.top_k, key="chat_topk")
+        top_k = st.slider("Sources", 3, 15, st.session_state.top_k, key="chat_topk",
+                          help="How many passages from your course materials are sent to Claude as context. Higher = more coverage for broad questions but slower and more expensive. 8 is a good default.")
         st.caption(f"**{chunks:,}** chunks indexed")
 
         if st.button("🗑️ Clear chat", use_container_width=True):

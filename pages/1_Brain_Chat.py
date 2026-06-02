@@ -32,7 +32,7 @@ with st.sidebar:
         "claude-haiku-4-5-20251001",
     ])
     top_k = st.slider("Chunks to retrieve", min_value=3, max_value=15, value=8,
-                      help="More chunks = more context but slower and more expensive.")
+                      help="How many passages from your course materials are sent to Claude as context. Higher = more coverage for broad questions but slower and more expensive. 8 is a good default.")
 
     st.divider()
     st.subheader("📚 Knowledge Base")
